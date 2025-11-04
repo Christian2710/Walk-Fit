@@ -1,0 +1,62 @@
+name: Flutter Tests
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Android
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout del codice
+        uses: actions/checkout@v4
+
+      - name: Setup Java per Android
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Visualizza versione Flutter
+        run: flutter --version
+
+      - name: Installa dipendenze
+        run: flutter pub get
+
+      - name: Analisi statica del codice
+        run: flutter analyze --no-fatal-infos
+
+      - name: Esegui tutti i test
+        run: flutter test --reporter expanded
+
+      - name: Genera report coverage
+        run: flutter test --coverage
+
+      - name: Upload coverage a Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload risultati test come artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-android
+          path: |
+            coverage/
+            test/
+          retention-days: 7
